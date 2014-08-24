@@ -22,8 +22,12 @@
 * USB cable to the computer and upload this sketch. 
 */
 
+#include <RF24.h>
+#include <nRF24L01.h>
+#include <RF24_config.h>
 
 #include <SPI.h>
+
 #define LOG_PERIOD 15000  //Logging period in milliseconds, recommended value 15000-60000.
 #define MAX_PERIOD 60000  //Maximum logging period without modifying this sketch
 
@@ -33,6 +37,9 @@ unsigned int multiplier;  //variable for calculation CPM in this sketch
 unsigned long previousMillis;  //variable for time measurement
 float uSv;            // the measured microSiverts
 float ratio = 151.0; // the divide the cpm by ration to get uSv
+
+static RF24 rf(/*ce*/ 8, /*cs*/ 10);
+static long int address = 0x66996699L;  // So that's 0x0066996699
 
 void tube_impulse(){       //subprocedure for capturing events from Geiger Kit
   counts++;
@@ -45,6 +52,11 @@ void setup(){             //setup subprocedure
   Serial.begin(9600);
   attachInterrupt(0, tube_impulse, FALLING); //define external interrupts 
   
+  // init RF24
+  rf.begin();
+  rf.setRetries(15, 15);
+  rf.enableDynamicPayloads();
+  rf.openWritingPipe(address);
 }
 
 void loop(){                                 //main cycle
@@ -57,6 +69,18 @@ void loop(){                                 //main cycle
     uSv = cpm / ratio ;
     Serial.println(uSv);
     counts = 0;
+    
+    // send over RF24
+    unsigned char buf[7];
+    buf[0] = 6;
+    buf[1] = 'G';
+    buf[2] = 'E';
+    buf[3] = 'I';
+    buf[4] = 'G';
+    buf[5] = (cpm >> 8) & 0xFF;
+    buf[6] = (cpm >> 0) & 0xFF;
+    rf.write(buf, sizeof(buf));
   }
   
 }
+
