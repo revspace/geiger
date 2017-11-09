@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <string.h>
 
 #include <ESP8266WiFi.h>
 #include <WiFiManager.h>
@@ -9,8 +10,7 @@
 
 #define TOPIC_GEIGER    "revspace/sensors/geiger"
 
-#define LOG_PERIOD 15000        //Logging period in milliseconds, recommended value 15000-60000.
-#define MAX_PERIOD 60000        //Maximum logging period without modifying this sketch
+#define LOG_PERIOD 10
 
 static char esp_id[16];
 
@@ -18,24 +18,22 @@ static WiFiManager wifiManager;
 static WiFiClient wifiClient;
 static PubSubClient mqttClient(wifiClient);
 
-static unsigned long counts;
-static unsigned long cpm;
-static unsigned int multiplier;
-static unsigned long previousMillis;
+// the total count value
+static volatile unsigned long counts = 0;
 
-//subprocedure for capturing events from Geiger Kit
-static void tube_impulse()
+static int secondcounts[60];
+static int secidx_prev = 0;
+static unsigned long int count_prev = 0;
+static unsigned long int second_prev = 0;
+
+// interrupt routine
+static void tube_impulse(void)
 {
     counts++;
 }
 
-void setup()
+void setup(void)
 {
-    counts = 0;
-    cpm = 0;
-    multiplier = MAX_PERIOD / LOG_PERIOD;       //calculating multiplier, depend on your log period
-    attachInterrupt(0, tube_impulse, FALLING);  //define external interrupts 
-
     // initialize serial port
     Serial.begin(115200);
     Serial.println("GEIGER\n");
@@ -45,8 +43,14 @@ void setup()
     Serial.print("ESP ID: ");
     Serial.println(esp_id);
 
+    // connect to wifi
     Serial.println("Starting WIFI manager ...");
-    wifiManager.autoConnect("ESP-ZG01");
+    wifiManager.autoConnect("ESP-GEIGER");
+
+    // start counting
+    memcpy(secondcounts, 0, sizeof(secondcounts));
+    Serial.println("Starting count ...");
+    attachInterrupt(0, tube_impulse, FALLING); 
 }
 
 static void mqtt_send(const char *topic, const char *value)
@@ -68,13 +72,26 @@ static void mqtt_send(const char *topic, const char *value)
 
 void loop()
 {
-    unsigned long currentMillis = millis();
-    if (currentMillis - previousMillis > LOG_PERIOD) {
-        previousMillis = currentMillis;
-        cpm = counts * multiplier;
+    // update the circular buffer every second
+    unsigned long int second = millis() / 1000;
+    unsigned long int secidx = second % 60;
+    if (secidx != secidx_prev) {
+        // new second, store the counts from the last second
+        unsigned long int count = counts;
+        secondcounts[secidx_prev] = count - count_prev;
+        count_prev = count;
+        secidx_prev = secidx;
+    }
 
-        Serial.println(cpm);
-        counts = 0;
+    // report every LOG_PERIOD
+    if ((second - second_prev) > LOG_PERIOD) {
+        second_prev = second;
+
+        // calculate sum
+        int cpm = 0;
+        for (int i = 0; i < 60; i++) {
+            cpm += secondcounts[i];
+        }
 
         // send over MQTT
         char message[16];
