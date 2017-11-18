@@ -5,6 +5,8 @@
 #include <WiFiManager.h>
 #include <PubSubClient.h>
 
+#define PIN_TICK    D4
+
 #define MQTT_HOST   "mosquitto.space.revspace.nl"
 #define MQTT_PORT   1883
 
@@ -48,9 +50,11 @@ void setup(void)
     wifiManager.autoConnect("ESP-GEIGER");
 
     // start counting
-    memcpy(secondcounts, 0, sizeof(secondcounts));
+    memset(secondcounts, 0, sizeof(secondcounts));
     Serial.println("Starting count ...");
-    attachInterrupt(0, tube_impulse, FALLING); 
+    
+    pinMode(PIN_TICK, INPUT);
+    attachInterrupt(digitalPinToInterrupt(PIN_TICK), tube_impulse, FALLING); 
 }
 
 static void mqtt_send(const char *topic, const char *value)
