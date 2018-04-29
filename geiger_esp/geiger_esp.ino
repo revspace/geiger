@@ -24,7 +24,7 @@ static PubSubClient mqttClient(wifiClient);
 static volatile unsigned long counts = 0;
 
 static int secondcounts[60];
-static int secidx_prev = 0;
+static unsigned long int secidx_prev = 0;
 static unsigned long int count_prev = 0;
 static unsigned long int second_prev = 0;
 
