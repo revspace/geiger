@@ -102,5 +102,8 @@ void loop()
         snprintf(message, sizeof(message), "%d cpm", cpm);
         mqtt_send(TOPIC_GEIGER, message);
     }
+
+    // keep MQTT alive
+    mqttClient.loop();
 }
 
