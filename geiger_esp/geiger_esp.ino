@@ -47,6 +47,7 @@ void setup(void)
 
     // connect to wifi
     Serial.println("Starting WIFI manager ...");
+    wifiManager.setConfigPortalTimeout(120);
     wifiManager.autoConnect("ESP-GEIGER");
 
     // start counting
@@ -57,11 +58,14 @@ void setup(void)
     attachInterrupt(digitalPinToInterrupt(PIN_TICK), tube_impulse, FALLING); 
 }
 
-static void mqtt_send(const char *topic, const char *value)
+static bool mqtt_send(const char *topic, const char *value, bool retained)
 {
+    bool result = false;
     if (!mqttClient.connected()) {
+        Serial.print("Connecting MQTT...");
         mqttClient.setServer(MQTT_HOST, MQTT_PORT);
-        mqttClient.connect(esp_id);
+        result = mqttClient.connect(esp_id, topic, 0, retained, "offline");
+        Serial.println(result ? "OK" : "FAIL");
     }
     if (mqttClient.connected()) {
         Serial.print("Publishing ");
@@ -69,9 +73,10 @@ static void mqtt_send(const char *topic, const char *value)
         Serial.print(" to ");
         Serial.print(topic);
         Serial.print("...");
-        int result = mqttClient.publish(topic, value, true);
+        result = mqttClient.publish(topic, value, retained);
         Serial.println(result ? "OK" : "FAIL");
     }
+    return result;
 }
 
 void loop()
@@ -100,7 +105,13 @@ void loop()
         // send over MQTT
         char message[16];
         snprintf(message, sizeof(message), "%d cpm", cpm);
-        mqtt_send(TOPIC_GEIGER, message);
+        mqtt_send(TOPIC_GEIGER, message, true);
+
+        // verify network connection and reboot on failure
+        if (WiFi.status() != WL_CONNECTED) {
+            Serial.println("Restarting ESP...");
+            ESP.restart();
+        }
     }
 
     // keep MQTT alive
