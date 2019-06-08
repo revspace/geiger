@@ -29,7 +29,7 @@ static unsigned long int count_prev = 0;
 static unsigned long int second_prev = 0;
 
 // interrupt routine
-static void tube_impulse(void)
+ICACHE_RAM_ATTR static void tube_impulse(void)
 {
     counts++;
 }
@@ -105,10 +105,7 @@ void loop()
         // send over MQTT
         char message[16];
         snprintf(message, sizeof(message), "%d cpm", cpm);
-        mqtt_send(TOPIC_GEIGER, message, true);
-
-        // verify network connection and reboot on failure
-        if (WiFi.status() != WL_CONNECTED) {
+        if (!mqtt_send(TOPIC_GEIGER, message, true)) {
             Serial.println("Restarting ESP...");
             ESP.restart();
         }
