@@ -4,8 +4,11 @@
 #include <ESP8266WiFi.h>
 #include <WiFiManager.h>
 #include <PubSubClient.h>
+#include <TM1637Display.h>
 
 #define PIN_TICK    D4
+#define PIN_CLK     D3
+#define PIN_DIO     D2
 
 #define MQTT_HOST   "mosquitto.space.revspace.nl"
 #define MQTT_PORT   1883
@@ -19,6 +22,7 @@ static char esp_id[16];
 static WiFiManager wifiManager;
 static WiFiClient wifiClient;
 static PubSubClient mqttClient(wifiClient);
+static TM1637Display display(PIN_CLK, PIN_DIO);
 
 // the total count value
 static volatile unsigned long counts = 0;
@@ -109,6 +113,9 @@ void loop()
             Serial.println("Restarting ESP...");
             ESP.restart();
         }
+
+        // show on display
+        display.showNumberDec(cpm);
     }
 
     // keep MQTT alive
