@@ -61,9 +61,9 @@ void setup(void)
     // start counting
     memset(secondcounts, 0, sizeof(secondcounts));
     Serial.println("Starting count ...");
-    
+
     pinMode(PIN_TICK, INPUT);
-    attachInterrupt(digitalPinToInterrupt(PIN_TICK), tube_impulse, FALLING); 
+    attachInterrupt(digitalPinToInterrupt(PIN_TICK), tube_impulse, FALLING);
 }
 
 static bool mqtt_send(const char *topic, const char *value, bool retained)
@@ -99,7 +99,6 @@ void loop()
         count_prev = count;
         secidx_prev = secidx;
     }
-
     // report every LOG_PERIOD
     if ((second - second_prev) > LOG_PERIOD) {
         second_prev = second;
@@ -118,10 +117,9 @@ void loop()
             ESP.restart();
         }
     }
-
     // keep MQTT alive
     mqttClient.loop();
-    
+
     // allow OTA
     ArduinoOTA.handle();
 }
