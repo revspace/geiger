@@ -1,3 +1,6 @@
+#include <Arduino.h>
+#include <ArduinoOTA.h>
+
 #include <stdint.h>
 #include <string.h>
 
@@ -48,6 +51,11 @@ void setup(void)
     sprintf(esp_id, "%08X", ESP.getChipId());
     Serial.print("ESP ID: ");
     Serial.println(esp_id);
+
+    // setup OTA
+    ArduinoOTA.setHostname("esp-geiger");
+    ArduinoOTA.setPassword("geiger");
+    ArduinoOTA.begin();
 
     // connect to wifi
     Serial.println("Starting WIFI manager ...");
@@ -120,5 +128,8 @@ void loop()
 
     // keep MQTT alive
     mqttClient.loop();
+    
+    // allow OTA
+    ArduinoOTA.handle();
 }
 
