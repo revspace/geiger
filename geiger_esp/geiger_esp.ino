@@ -100,7 +100,7 @@ void loop()
         secidx_prev = secidx;
     }
     // report every LOG_PERIOD
-    if ((second - second_prev) > LOG_PERIOD) {
+    if ((second - second_prev) >= LOG_PERIOD) {
         second_prev = second;
 
         // calculate sum
