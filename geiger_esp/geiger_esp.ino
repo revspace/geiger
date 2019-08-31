@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <ArduinoOTA.h>
+#include "OTA_PASSWORD.h"
 
 #include <stdint.h>
 #include <string.h>
@@ -50,7 +51,7 @@ void setup(void)
 
     // setup OTA
     ArduinoOTA.setHostname("esp-geiger");
-    ArduinoOTA.setPassword("geiger");
+    ArduinoOTA.setPassword(OTA_PASSWORD);
     ArduinoOTA.begin();
 
     // connect to wifi
